@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<head>
+    <script>
+        function createPromiseRequest(options) {
+            return new Promise(function (resolve, reject) {
+                let xhr = new XMLHttpRequest();
+                xhr.open(options.method, options.url);
+                xhr.onload = function () {
+                    if (this.status >= 200 && this.status < 300) {
+                        resolve(xhr.response);
+                    } else {
+                        reject({
+                            status: this.status,
+                            statusText: xhr.statusText,
+                            response: xhr.response
+                        });
+                    }
+                };
+                xhr.onerror = function () {
+                    reject({
+                        status: this.status,
+                        statusText: xhr.statusText
+                    });
+                };
+
+                if (options.hasOwnProperty("headers")) {
+                    Object.keys(options.headers).forEach(function (key) {
+                        xhr.setRequestHeader(key, options.headers[key]);
+                    });
+                }
+
+                if (options.hasOwnProperty("responseType")) {
+                    xhr.responseType = options.responseType;
+                }
+
+                let data = options.data || null;
+                xhr.send(data);
+            });
+        }
+        function postPromise(url, data) {
+            data = data || {};
+            let urlEncodedDataPairs = Object.entries(data).reduce(function (accumulator, pair) {
+                const key = pair[0], value = pair[1];
+                if (Array.isArray(value)) {
+                    return accumulator.concat(value.map(function (subValue) {
+                        return encodeURIComponent(key) + '=' + encodeURIComponent(subValue);
+                    }));
+                } else {
+                    accumulator.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+                    return accumulator;
+                }
+            }, []);
+
+            // x-www-form-urlencoded issue.
+            // Combine the pairs into a single string and replace all %-encoded spaces to
+            // the '+' character; matches the behaviour of browser form submissions.
+            let urlEncodedData = urlEncodedDataPairs.join('&').replace(/%20/g, '+');
+
+            return createPromiseRequest({
+                "method": "POST",
+                "url": url,
+                "headers": {'Content-Type': 'application/x-www-form-urlencoded'},
+                "data": urlEncodedData
+            });
+        }
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const btn = document.getElementById('btn');
+            btn.addEventListener('click', (event) => {
+                let name = document.getElementById('name').value;
+                let email = document.getElementById('email').value;
+                let pwd = document.getElementById('pwd').value;
+                const responseBox = document.getElementById('resp');
+                responseBox.textContent = '';
+                postPromise('/api/register', {'name': name, 'email': email, 'pwd': pwd})
+                        .then((resp) => responseBox.textContent = resp );
+            });
+        });
+    </script>
+    <style>
+        html{height:100%}
+        body{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box;padding:1em;background-color:#f5f5f5;color:#2b2b2b;font-family:"Open Sans","Noto Sans CJK TC","Noto Sans CJK SC","Noto Sans CJK JP","Noto Sans CJK KR","Lucida Grande",Tahoma,arial,sans-serif;font-size: 24px;cursor:text;white-space:pre-wrap;}
+        #main {min-height: 800px;margin: 0;padding: 0;display: flex;flex-flow: row;}
+        .formItem{display: flex;flex-flow: column;}
+        .responseBox{padding: 0 20px;}
+    </style>
+</head>
+<body>
+    <div id='main'>
+        <div class="formItem">
+            <form id="form">
+                <label for="name">name</label> <input type="text" id="name">
+                <label for="email">email</label> <input type="email" id="email">
+                <label for="pwd">password</label> <input type="password" id="pwd">
+                <input type="button" id="btn" value="submit">
+            </form>
+            <div id="resp" class="responseBox"></div>
+        </div>
+    </div>
+</body>
