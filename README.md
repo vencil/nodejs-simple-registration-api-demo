@@ -1,4 +1,4 @@
-# nodejs-simple-registration-demo
+# nodejs-simple-registration-api-demo
 A simple demo shows how to implement an API for registration and return a JWT token or error json response as result
 
 ### Prerequisites
